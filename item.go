@@ -2,12 +2,14 @@ package staticbackend
 
 import (
 	"encoding/json"
-	"net/http"
-	"time"
+net/http"
+	"strconv"
+	"time
 
 	"github.com/staticbackendhq/core/backend"
-	"github.com/staticbackendhq/core/logger"
-	"github.com/staticbackendhq/core/model"
+logger"
+	"github.com/staticbackendhq/core/middleware"
+	"github.com/staticbackendhq/core/model
 )
 
 // Item represents a product that is being sold
@@ -29,7 +31,19 @@ type items struct {
 }
 
 // Collection name for items
-const itemsCollection = "items"
+// respond writes a JSON response with the given status code and data
+func respond(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+
 
 // Create a new item
 func (i *items) create(w http.ResponseWriter, r *http.Request) {
@@ -242,4 +256,18 @@ func (i *items) updateStock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusOK, doc)
+
+
+// RegisterItemRoutes registers all Item-related routes
+func RegisterItemRoutes(mux *http.ServeMux) {
+	i := &items{
+		log: logger.Get(),
+	}
+	
+	mux.HandleFunc("/api/items/create", i.create)
+	mux.HandleFunc("/api/items/get", i.get)
+	mux.HandleFunc("/api/items/list", i.list)
+	mux.HandleFunc("/api/items/update", i.update)
+	mux.HandleFunc("/api/items/delete", i.delete)
+	mux.HandleFunc("/api/items/updateStock", i.updateStock)
 }
